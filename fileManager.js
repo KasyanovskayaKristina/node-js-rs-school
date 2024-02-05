@@ -73,7 +73,7 @@ function handleCommand(command) {
   } else if (command.startsWith("rm")) {
     const filePath = command.slice(3).trim();
     removeFile(filePath);
-  } else if (command === "os") {
+  } else if (command === "os" || command === "os --EOL") {
     printEOL();
   } else if (command === "os --cpus") {
     getCpusInfo();
