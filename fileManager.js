@@ -16,7 +16,11 @@ import {
   decompressFile,
 } from "./operations/compressOperations.js";
 import { calculateFileHash } from "./operations/hashOperations.js";
-import { printUsername, printArchitecture, printHomedir } from "./operations/printOperations.js";
+import {
+  printUsername,
+  printArchitecture,
+  printHomedir,
+} from "./operations/printOperations.js";
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -36,7 +40,7 @@ function printCurrentWorkingDirectory() {
 }
 
 function handleCommand(command) {
-  if (command === ".exit") {
+  if (command === ".exit" || command === "exit") {
     console.log(`Thank you for using File Manager, ${username}, goodbye!`);
     process.exit(0);
   } else if (command === "up") {

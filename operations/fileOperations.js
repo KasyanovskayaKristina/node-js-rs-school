@@ -101,16 +101,31 @@ function copyFile(sourcePath, targetPath) {
   const sourceFile = path.resolve(sourcePath);
   const targetFile = path.resolve(targetPath, path.basename(sourcePath));
 
+  const targetDir = path.dirname(targetFile);
+  if (!fs.existsSync(targetDir)) {
+    console.error(`Error: Target directory "${targetDir}" does not exist.`);
+    return;
+  }
+
   const readStream = fs.createReadStream(sourceFile);
+
+  readStream.on("error", (err) => {
+    console.error(`Error reading file "${sourceFile}": ${err.message}`);
+  });
+
   const writeStream = fs.createWriteStream(targetFile);
 
-  readStream.pipe(writeStream);
+  writeStream.on("error", (err) => {
+    console.error(`Error writing to file "${targetFile}": ${err.message}`);
+    readStream.close();
+  });
 
   writeStream.on("close", () => {
     console.log(`File '${sourcePath}' copied to '${targetPath}' successfully.`);
   });
-}
 
+  readStream.pipe(writeStream);
+}
 function moveFile(sourcePath, targetPath) {
   const sourceFile = path.resolve(sourcePath);
   const targetFile = path.resolve(targetPath, path.basename(sourcePath));
