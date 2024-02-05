@@ -2,7 +2,6 @@ import readline from "readline";
 import {
   navigateUp,
   changeDirectory,
-  listContents,
   readFileContent,
   createFile,
   renameFile,
@@ -11,16 +10,15 @@ import {
   removeFile,
 } from "./operations/fileOperations.js";
 import { printEOL, getCpusInfo } from "./operations/osOperations.js";
-import {
-  compressFile,
-  decompressFile,
-} from "./operations/compressOperations.js";
+import { compressFile } from "./operations/compressOperations.js";
+import { decompressFile } from "./operations/decompressOperation.js";
 import { calculateFileHash } from "./operations/hashOperations.js";
 import {
   printUsername,
   printArchitecture,
   printHomedir,
 } from "./operations/printOperations.js";
+import { listContents } from "./operations/listOperations.js";
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -39,40 +37,40 @@ function printCurrentWorkingDirectory() {
   console.log(`You are currently in ${process.cwd()}`);
 }
 
-function handleCommand(command) {
+async function handleCommand(command) {
   if (command === ".exit" || command === "exit") {
     console.log(`Thank you for using File Manager, ${username}, goodbye!`);
     process.exit(0);
   } else if (command === "up") {
     navigateUp();
   } else if (command.startsWith("cd")) {
-    changeDirectory(command.slice(3).trim());
+    await changeDirectory(command.slice(3).trim());
   } else if (command.startsWith("cat")) {
     const filePath = command.slice(4).trim();
-    readFileContent(filePath);
+    await readFileContent(filePath);
   } else if (command.startsWith("add")) {
     const fileName = command.slice(4).trim();
-    createFile(fileName);
+    await createFile(fileName);
   } else if (command.startsWith("rn")) {
     const args = command.slice(3).trim().split(" ");
     const oldFileName = args[0];
     const newFileName = args[1];
-    renameFile(oldFileName, newFileName);
+    await renameFile(oldFileName, newFileName);
   } else if (command.startsWith("cp")) {
     const args = command.slice(3).trim().split(" ");
     const sourcePath = args[0];
     const targetPath = args[1];
-    copyFile(sourcePath, targetPath);
+    await copyFile(sourcePath, targetPath);
   } else if (command.startsWith("mv")) {
     const args = command.slice(3).trim().split(" ");
     const sourcePath = args[0];
     const targetPath = args[1];
-    moveFile(sourcePath, targetPath);
+    await moveFile(sourcePath, targetPath);
   } else if (command === "ls") {
     listContents();
   } else if (command.startsWith("rm")) {
     const filePath = command.slice(3).trim();
-    removeFile(filePath);
+    await removeFile(filePath);
   } else if (command === "os" || command === "os --EOL") {
     printEOL();
   } else if (command === "os --cpus") {
@@ -85,23 +83,22 @@ function handleCommand(command) {
     printArchitecture();
   } else if (command.startsWith("hash")) {
     const filePath = command.slice(5).trim();
-    calculateFileHash(filePath)
-      .then((fileHash) => {
-        console.log(`Hash of ${filePath}: ${fileHash}`);
-      })
-      .catch((error) => {
-        console.error(`Error calculating hash: ${error.message}`);
-      });
+    try {
+      const fileHash = await calculateFileHash(filePath);
+      console.log(`Hash of ${filePath}: ${fileHash}`);
+    } catch (error) {
+      console.error(`Error calculating hash: ${error.message}`);
+    }
   } else if (command.startsWith("compress")) {
     const args = command.slice(8).trim().split(" ");
     const sourcePath = args[0];
     const destinationPath = args[1];
-    compressFile(sourcePath, destinationPath);
+    await compressFile(sourcePath, destinationPath);
   } else if (command.startsWith("decompress")) {
     const args = command.slice(10).trim().split(" ");
     const sourcePath = args[0];
     const destinationPath = args[1];
-    decompressFile(sourcePath, destinationPath);
+    await decompressFile(sourcePath, destinationPath);
   } else {
     console.log(`Command received: ${command}`);
   }
@@ -111,7 +108,7 @@ async function promptUser() {
   const userCommand = await new Promise((resolve) =>
     rl.question("> ", resolve)
   );
-  handleCommand(userCommand);
+  await handleCommand(userCommand);
   promptUser();
 }
 

@@ -1,36 +1,26 @@
 import path from "path";
-import fs from "fs";
+import fs from "fs/promises";
 import { printCurrentWorkingDirectory } from "../fileManager.js";
 
-function readFileContent(filePath) {
+async function readFileContent(filePath) {
   const fullPath = path.resolve(process.cwd(), filePath);
 
   try {
-    const fileStream = fs.createReadStream(fullPath);
-
-    fileStream.on("data", (chunk) => {
-      console.log(chunk.toString());
-    });
-
-    fileStream.on("end", () => {
-      console.log(`File "${filePath}" read successfully.`);
-    });
-
-    fileStream.on("error", (error) => {
-      console.error(`Error reading file "${filePath}": ${error.message}`);
-    });
+    const fileData = await fs.readFile(fullPath);
+    console.log(fileData.toString());
+    console.log(`File "${filePath}" read successfully.`);
   } catch (error) {
-    console.error(`Failed to read file "${filePath}": ${error.message}`);
+    console.error(`Error reading file "${filePath}": ${error.message}`);
   }
 
   printCurrentWorkingDirectory();
 }
 
-function createFile(fileName) {
+async function createFile(fileName) {
   const fullPath = path.resolve(process.cwd(), fileName);
 
   try {
-    fs.writeFileSync(fullPath, "");
+    await fs.writeFile(fullPath, "");
     console.log(`File "${fileName}" created successfully.`);
   } catch (error) {
     console.error(`Failed to create file "${fileName}": ${error.message}`);
@@ -39,13 +29,18 @@ function createFile(fileName) {
   printCurrentWorkingDirectory();
 }
 
-function navigateUp() {
+async function navigateUp() {
   const currentPath = process.cwd();
 
   if (currentPath !== "C:\\" && currentPath !== "/") {
     const newPath = path.resolve(currentPath, "..");
-    process.chdir(newPath);
-    console.log(`Navigated up to: ${newPath}`);
+    try {
+      await fs.access(newPath, fs.constants.R_OK | fs.constants.W_OK);
+      process.chdir(newPath);
+      console.log(`Navigated up to: ${newPath}`);
+    } catch (error) {
+      console.error(`Error navigating up: ${error.message}`);
+    }
   } else {
     console.log("Already at the root directory. Can't navigate up.");
   }
@@ -53,11 +48,12 @@ function navigateUp() {
   printCurrentWorkingDirectory();
 }
 
-function changeDirectory(targetPath) {
+async function changeDirectory(targetPath) {
   const currentPath = process.cwd();
   const newPath = path.resolve(currentPath, targetPath);
 
   try {
+    await fs.access(newPath, fs.constants.X_OK);
     process.chdir(newPath);
     console.log(`Changed directory to: ${newPath}`);
   } catch (error) {
@@ -67,26 +63,12 @@ function changeDirectory(targetPath) {
   printCurrentWorkingDirectory();
 }
 
-function listContents() {
-  const currentPath = process.cwd();
-  const contents = fs.readdirSync(currentPath).sort();
-
-  console.log("List of contents:");
-  contents.forEach((item, index) => {
-    const fullPath = path.join(currentPath, item);
-    const isDirectory = fs.statSync(fullPath).isDirectory();
-    const type = isDirectory ? "directory" : "file";
-    const formattedName = isDirectory ? item + "/" : item;
-    console.log(`${index + 1}: ${formattedName}\t${type}`);
-  });
-}
-
-function renameFile(oldFileName, newFileName) {
+async function renameFile(oldFileName, newFileName) {
   const oldFullPath = path.resolve(process.cwd(), oldFileName);
   const newFullPath = path.resolve(process.cwd(), newFileName);
 
   try {
-    fs.renameSync(oldFullPath, newFullPath);
+    await fs.rename(oldFullPath, newFullPath);
     console.log(
       `File "${oldFileName}" renamed to "${newFileName}" successfully.`
     );
@@ -97,72 +79,56 @@ function renameFile(oldFileName, newFileName) {
   printCurrentWorkingDirectory();
 }
 
-function copyFile(sourcePath, targetPath) {
+async function copyFile(sourcePath, targetPath) {
   const sourceFile = path.resolve(sourcePath);
   const targetFile = path.resolve(targetPath, path.basename(sourcePath));
 
   const targetDir = path.dirname(targetFile);
-  if (!fs.existsSync(targetDir)) {
+
+  try {
+    await fs.access(targetDir, fs.constants.W_OK);
+  } catch (error) {
     console.error(`Error: Target directory "${targetDir}" does not exist.`);
-    return;
-  }
-
-  const readStream = fs.createReadStream(sourceFile);
-
-  readStream.on("error", (err) => {
-    console.error(`Error reading file "${sourceFile}": ${err.message}`);
-  });
-
-  const writeStream = fs.createWriteStream(targetFile);
-
-  writeStream.on("error", (err) => {
-    console.error(`Error writing to file "${targetFile}": ${err.message}`);
-    readStream.close();
-  });
-
-  writeStream.on("close", () => {
-    console.log(`File '${sourcePath}' copied to '${targetPath}' successfully.`);
-  });
-
-  readStream.pipe(writeStream);
-}
-
-function moveFile(sourcePath, targetPath) {
-  const sourceFile = path.resolve(sourcePath);
-  const targetFile = path.resolve(targetPath, path.basename(sourcePath));
-
-  const targetDir = path.dirname(targetFile);
-  if (!fs.existsSync(targetDir)) {
-    console.error(`Error: Target directory "${targetDir}" does not exist.`);
-    return;
-  }
-
-  fs.rename(sourceFile, targetFile, (err) => {
-    if (err) {
-      console.error(`Error moving file: ${err.message}`);
-    } else {
-      console.log(
-        `File '${sourcePath}' moved to '${targetPath}' successfully.`
-      );
-    }
-  });
-}
-
-function removeFile(filePath) {
-  const fullPath = path.resolve(process.cwd(), filePath);
-
-  if (!fs.existsSync(fullPath)) {
-    console.error(`Error: File "${filePath}" does not exist.`);
     return;
   }
 
   try {
-    const result = fs.unlinkSync(fullPath);
-    if (result === undefined) {
-      console.log(`File '${filePath}' removed successfully.`);
-    } else {
-      console.error(`Failed to remove file '${filePath}': Unknown error.`);
-    }
+    const fileData = await fs.readFile(sourceFile);
+    await fs.writeFile(targetFile, fileData);
+
+    console.log(`File '${sourcePath}' copied to '${targetPath}' successfully.`);
+  } catch (error) {
+    console.error(`Error copying file: ${error.message}`);
+  }
+}
+
+async function moveFile(sourcePath, targetPath) {
+  const sourceFile = path.resolve(sourcePath);
+  const targetFile = path.resolve(targetPath, path.basename(sourcePath));
+
+  const targetDir = path.dirname(targetFile);
+
+  try {
+    await fs.access(targetDir, fs.constants.W_OK);
+  } catch (error) {
+    console.error(`Error: Target directory "${targetDir}" does not exist.`);
+    return;
+  }
+
+  try {
+    await fs.rename(sourceFile, targetFile);
+    console.log(`File '${sourcePath}' moved to '${targetPath}' successfully.`);
+  } catch (error) {
+    console.error(`Error moving file: ${error.message}`);
+  }
+}
+
+async function removeFile(filePath) {
+  const fullPath = path.resolve(process.cwd(), filePath);
+
+  try {
+    await fs.unlink(fullPath);
+    console.log(`File '${filePath}' removed successfully.`);
   } catch (error) {
     console.error(`Failed to remove file '${filePath}': ${error.message}`);
   }
@@ -175,7 +141,6 @@ export {
   createFile,
   navigateUp,
   changeDirectory,
-  listContents,
   renameFile,
   copyFile,
   moveFile,

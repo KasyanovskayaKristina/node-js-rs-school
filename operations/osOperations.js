@@ -1,20 +1,25 @@
 import os from "os";
 
-function printEOL() {
+async function printEOL() {
   try {
-    const eol = os.EOL;
+    const eol = await new Promise((resolve, reject) => {
+      resolve(os.EOL);
+    });
     console.log(`End of Line (EOL) for the current operating system: "${eol}"`);
   } catch (error) {
     console.error(`Error getting End of Line (EOL): ${error.message}`);
   }
 }
 
-function getCpusInfo() {
+async function getCpusInfo() {
   try {
-    const cpus = os.cpus();
+    const cpus = await new Promise((resolve, reject) => {
+      resolve(os.cpus());
+    });
+
     console.log(`Total CPUs: ${cpus.length}`);
 
-    cpus.forEach((cpu, index) => {
+    cpus.forEach(async (cpu, index) => {
       console.log(`CPU ${index + 1}:`);
       console.log(`  Model: ${cpu.model}`);
       console.log(`  Speed: ${cpu.speed / 1000} GHz`);

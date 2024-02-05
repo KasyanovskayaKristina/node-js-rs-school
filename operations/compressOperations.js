@@ -1,32 +1,15 @@
 import zlib from "zlib";
-import fs from "fs";
+import { promises as fsPromises } from "fs";
 
-function compressFile(sourcePath, destinationPath) {
-  const sourceFileStream = fs.createReadStream(sourcePath);
-  const destinationFileStream = fs.createWriteStream(destinationPath);
-  const brotliStream = zlib.createBrotliCompress();
+async function compressFile(sourcePath, destinationPath) {
+  const sourceFileData = await fsPromises.readFile(sourcePath);
+  const compressedData = zlib.brotliCompressSync(sourceFileData);
 
-  sourceFileStream.pipe(brotliStream).pipe(destinationFileStream);
+  await fsPromises.writeFile(destinationPath, compressedData);
 
-  destinationFileStream.on("close", () => {
-    console.log(
-      `File '${sourcePath}' compressed to '${destinationPath}' successfully.`
-    );
-  });
+  console.log(
+    `File '${sourcePath}' compressed to '${destinationPath}' successfully.`
+  );
 }
 
-function decompressFile(sourcePath, destinationPath) {
-  const sourceFileStream = fs.createReadStream(sourcePath);
-  const destinationFileStream = fs.createWriteStream(destinationPath);
-  const brotliStream = zlib.createBrotliDecompress();
-
-  sourceFileStream.pipe(brotliStream).pipe(destinationFileStream);
-
-  destinationFileStream.on("close", () => {
-    console.log(
-      `File '${sourcePath}' decompressed to '${destinationPath}' successfully.`
-    );
-  });
-}
-
-export { compressFile, decompressFile };
+export { compressFile };

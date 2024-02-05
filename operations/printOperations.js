@@ -1,6 +1,7 @@
 import os from "os";
+import { promisify } from "util";
 
-function printHomedir() {
+async function printHomedir() {
   try {
     const homedir = os.homedir();
     console.log(`Home directory: ${homedir}`);
@@ -9,7 +10,7 @@ function printHomedir() {
   }
 }
 
-function printUsername() {
+async function printUsername() {
   try {
     const userInfo = os.userInfo();
     console.log(`Current system username: ${userInfo.username}`);
@@ -18,7 +19,7 @@ function printUsername() {
   }
 }
 
-function printArchitecture() {
+async function printArchitecture() {
   try {
     const architecture = process.arch;
     console.log(`Node.js binary compiled for architecture: ${architecture}`);
