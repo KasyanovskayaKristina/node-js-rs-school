@@ -126,9 +126,16 @@ function copyFile(sourcePath, targetPath) {
 
   readStream.pipe(writeStream);
 }
+
 function moveFile(sourcePath, targetPath) {
   const sourceFile = path.resolve(sourcePath);
   const targetFile = path.resolve(targetPath, path.basename(sourcePath));
+
+  const targetDir = path.dirname(targetFile);
+  if (!fs.existsSync(targetDir)) {
+    console.error(`Error: Target directory "${targetDir}" does not exist.`);
+    return;
+  }
 
   fs.rename(sourceFile, targetFile, (err) => {
     if (err) {
